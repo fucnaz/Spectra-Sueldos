@@ -14,12 +14,15 @@ const DEFAULT_CONFIG = {
   lct_antiguedad_pct: 1.0
 };
 
+// --- URL DE GOOGLE SHEETS (fija, no modificable por el usuario) 
+// const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzybj6i3a3uwz-MxHZjEz-eYdSmv2ru3nLLq--xmrrNlo1EbNb4z-dZYOSbwsdOojL04A/exec";
+
 // --- ESTADO GLOBAL ---
 let state = {
   employees: [],
   liquidations: [],
   config: { ...DEFAULT_CONFIG },
-  sheetsUrl: "",
+  sheetsUrl: SHEETS_URL,
   isOnline: false,
   activeSection: "tablero"
 };
@@ -32,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await refreshData();
   initEventListeners();
   updateDashboardStats();
-  
+
   // Establecer período predeterminado en la pestaña Liquidar (Mes actual)
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -41,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (liqPeriodInput) {
     liqPeriodInput.value = `${yyyy}-${mm}`;
   }
-  
+
   // Mostrar fecha actual en el tablero
   const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById("current-date-display").innerText = today.toLocaleDateString('es-ES', dateOptions);
@@ -62,13 +65,13 @@ function navigate(targetSection) {
   // Ocultar todas las secciones
   const sections = document.querySelectorAll(".app-section");
   sections.forEach(sec => sec.classList.add("d-none"));
-  
+
   // Mostrar sección seleccionada
   const target = document.getElementById(`section-${targetSection}`);
   if (target) {
     target.classList.remove("d-none");
   }
-  
+
   // Actualizar estado de botones de navegación
   const navButtons = document.querySelectorAll(".nav-btn");
   navButtons.forEach(btn => {
@@ -80,7 +83,7 @@ function navigate(targetSection) {
   });
 
   state.activeSection = targetSection;
-  
+
   // Acciones específicas al entrar a una sección
   if (targetSection === "tablero") {
     updateDashboardStats();
@@ -102,7 +105,7 @@ function initTheme() {
   const toggleBtn = document.getElementById("theme-toggle");
   const sunIcon = toggleBtn.querySelector(".sun-icon");
   const moonIcon = toggleBtn.querySelector(".moon-icon");
-  
+
   // Leer tema guardado
   const savedTheme = localStorage.getItem("spectra-theme") || "dark";
   if (savedTheme === "light") {
@@ -115,7 +118,7 @@ function initTheme() {
   toggleBtn.addEventListener("click", () => {
     const isLight = document.body.classList.toggle("light-theme");
     document.body.classList.toggle("dark-theme", !isLight);
-    
+
     if (isLight) {
       localStorage.setItem("spectra-theme", "light");
       sunIcon.classList.add("d-none");
@@ -133,13 +136,12 @@ function initTheme() {
 // --- CAPA DE DATOS (LOCALSTORAGE & GOOGLE SHEETS API) ---
 
 function loadLocalSettings() {
-  state.sheetsUrl = localStorage.getItem("spectra_sheets_url") || "";
-  
+  // La URL de Google Sheets está hardcodeada en SHEETS_URL y no se lee ni escribe en localStorage.
   // Cargar datos locales como fallback inicial
   const localEmployees = localStorage.getItem("spectra_employees");
   const localLiquidations = localStorage.getItem("spectra_liquidations");
   const localConfig = localStorage.getItem("spectra_config");
-  
+
   if (localEmployees) state.employees = JSON.parse(localEmployees);
   if (localLiquidations) state.liquidations = JSON.parse(localLiquidations);
   if (localConfig) state.config = { ...DEFAULT_CONFIG, ...JSON.parse(localConfig) };
@@ -151,22 +153,22 @@ async function refreshData() {
     setOnlineStatus(false);
     return;
   }
-  
+
   try {
     const response = await fetch(state.sheetsUrl, { method: "GET" });
     if (!response.ok) throw new Error("Error en la respuesta del servidor");
-    
+
     const result = await response.json();
     if (result.status === "success" && result.data) {
       state.employees = result.data.empleados || [];
       state.liquidations = result.data.liquidations || [];
       state.config = { ...DEFAULT_CONFIG, ...result.data.config };
-      
+
       // Sincronizar en LocalStorage para respaldo offline
       localStorage.setItem("spectra_employees", JSON.stringify(state.employees));
       localStorage.setItem("spectra_liquidations", JSON.stringify(state.liquidations));
       localStorage.setItem("spectra_config", JSON.stringify(state.config));
-      
+
       setOnlineStatus(true);
     } else {
       throw new Error(result.message || "Error desconocido");
@@ -184,7 +186,7 @@ function setOnlineStatus(online, customText = "") {
   const title = document.getElementById("db-status-title");
   const desc = document.getElementById("db-status-desc");
   const syncBtn = document.getElementById("sync-panel-data");
-  
+
   if (online) {
     dot.className = "db-indicator online";
     title.innerText = "Google Sheets Conectado";
@@ -194,7 +196,7 @@ function setOnlineStatus(online, customText = "") {
     dot.className = "db-indicator offline";
     title.innerText = customText || "Base de datos local";
     desc.innerText = "LocalStorage activo (Offline)";
-    
+
     // Si hay URL pero no está conectada, mostramos panel de sync por si acaso
     if (state.sheetsUrl && syncBtn) {
       syncBtn.classList.remove("d-none");
@@ -318,9 +320,9 @@ async function syncLocalDataToSheets() {
     showToast("Configura primero la URL de Google Sheets", "error");
     return;
   }
-  
+
   showToast("Sincronizando base de datos...", "info");
-  
+
   try {
     // Subir configuración
     await fetch(state.sheetsUrl, {
@@ -329,7 +331,7 @@ async function syncLocalDataToSheets() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "saveConfig", config: state.config })
     });
-    
+
     // Subir cada empleado
     for (const emp of state.employees) {
       await fetch(state.sheetsUrl, {
@@ -339,7 +341,7 @@ async function syncLocalDataToSheets() {
         body: JSON.stringify({ action: "saveEmployee", employee: emp })
       });
     }
-    
+
     // Subir cada liquidación
     for (const liq of state.liquidations) {
       await fetch(state.sheetsUrl, {
@@ -349,7 +351,7 @@ async function syncLocalDataToSheets() {
         body: JSON.stringify({ action: "saveLiquidation", liquidation: liq })
       });
     }
-    
+
     showToast("Sincronización total exitosa", "success");
     await refreshData();
   } catch (err) {
@@ -363,15 +365,15 @@ async function syncLocalDataToSheets() {
 function calculateAntiguedadAnios(fechaIngresoStr, periodoStr) {
   const [pYear, pMonth] = periodoStr.split("-").map(Number);
   const ingreso = new Date(fechaIngresoStr + "T00:00:00");
-  
+
   let años = pYear - ingreso.getFullYear();
   const mesDiferencia = pMonth - 1 - ingreso.getMonth(); // pMonth es 1-indexed, getMonth() es 0-indexed
-  
+
   // Si no se cumplió el aniversario de ingreso todavía en este mes, restamos un año
   if (mesDiferencia < 0 || (mesDiferencia === 0 && ingreso.getDate() > 30)) {
     años--;
   }
-  
+
   return Math.max(0, años);
 }
 
@@ -392,7 +394,7 @@ function runPayrollCalculation(employee, period, options) {
   const pctAntiguedad = parseFloat(state.config.lct_antiguedad_pct) || 1.0;
 
   const conceptLines = [];
-  
+
   // 1. Sueldo Básico proporcional a los días trabajados
   const sueldoBasicoProporcional = (basicSalary / 30) * daysWorked;
   conceptLines.push({
@@ -477,7 +479,7 @@ function runPayrollCalculation(employee, period, options) {
   }
 
   // 7. Retenciones / Deducciones de Ley (calculadas sobre el total remunerativo)
-  
+
   // Jubilación (11%)
   const jubilacionVal = totalRemunerativo * (pctJubilacion / 100);
   conceptLines.push({
@@ -544,7 +546,7 @@ function numberToWords(num) {
   const temp = parseFloat(num).toFixed(2).split(".");
   const pesos = parseInt(temp[0]);
   const centavos = parseInt(temp[1]);
-  
+
   if (pesos === 0) return "SON PESOS CERO CON " + centavos + "/100 M.N.";
 
   function Unidades(num) {
@@ -663,7 +665,7 @@ function numberToWords(num) {
 
   const outputPesos = Millones(pesos);
   const outputCentavos = centavos < 10 ? "0" + centavos : centavos;
-  
+
   return `SON PESOS ${outputPesos} CON ${outputCentavos}/100 M.N.`;
 }
 
@@ -677,7 +679,7 @@ function formatPeriod(periodStr) {
   if (!periodStr) return "";
   const [year, month] = periodStr.split("-");
   const monthNames = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
   return `${monthNames[parseInt(month) - 1]} de ${year}`;
@@ -697,18 +699,18 @@ function formatDate(dateStr) {
 function updateDashboardStats() {
   const activeCount = state.employees.filter(e => e.Activo).length;
   document.getElementById("stat-total-employees").innerText = activeCount;
-  
+
   // Total liquidado en el periodo actual
   const today = new Date();
   const currentPeriod = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   document.getElementById("stat-current-period-name").innerText = formatPeriod(currentPeriod);
-  
+
   const currentPeriodLiqs = state.liquidations.filter(l => l.Periodo === currentPeriod);
   const totalPayroll = currentPeriodLiqs.reduce((acc, l) => acc + parseFloat(l.Neto), 0);
   document.getElementById("stat-total-payroll").innerText = formatCurrency(totalPayroll);
-  
+
   document.getElementById("stat-total-receipts").innerText = state.liquidations.length;
-  
+
   // Información de la empresa rápida en barra lateral
   document.getElementById("company-lbl-name").innerText = state.config.empresa_nombre || "-";
   document.getElementById("company-lbl-cuit").innerText = state.config.empresa_cuit || "-";
@@ -719,15 +721,15 @@ function updateDashboardStats() {
 function renderRecentLiquidations() {
   const tbody = document.getElementById("dashboard-recent-liquidations");
   tbody.innerHTML = "";
-  
+
   if (state.liquidations.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" class="text-muted text-center py-4">No hay liquidaciones en el historial.</td></tr>`;
     return;
   }
-  
+
   // Ordenar de más reciente a más antiguo
   const sorted = [...state.liquidations].reverse().slice(0, 5);
-  
+
   sorted.forEach(liq => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -750,22 +752,22 @@ function renderRecentLiquidations() {
 function renderEmployeesTable() {
   const tbody = document.getElementById("employees-table-body");
   tbody.innerHTML = "";
-  
+
   const searchVal = document.getElementById("employee-search").value.toLowerCase();
   const filterVal = document.getElementById("employee-status-filter").value;
-  
+
   const filtered = state.employees.filter(emp => {
     // Filtro de búsqueda
-    const matchesSearch = 
+    const matchesSearch =
       emp.Nombre.toLowerCase().includes(searchVal) ||
       String(emp.Legajo).includes(searchVal) ||
       emp.CUIL.includes(searchVal);
-      
+
     // Filtro de estado
     let matchesStatus = true;
     if (filterVal === "active") matchesStatus = emp.Activo;
     else if (filterVal === "inactive") matchesStatus = !emp.Activo;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -823,10 +825,10 @@ function reactivateEmployee(legajo) {
 function populateEmployeesSelect() {
   const select = document.getElementById("liq-employee-select");
   select.innerHTML = '<option value="">Seleccione un empleado...</option>';
-  
+
   // Solo liquidar sobre empleados activos
   const activeEmployees = state.employees.filter(e => e.Activo);
-  
+
   activeEmployees.forEach(emp => {
     const opt = document.createElement("option");
     opt.value = emp.Legajo;
@@ -839,15 +841,15 @@ function populateEmployeesSelect() {
 function handleEmployeeSelectionChange() {
   const legajo = document.getElementById("liq-employee-select").value;
   const box = document.getElementById("preview-employee-info-box");
-  
+
   if (!legajo) {
     clearLiquidationPreview();
     return;
   }
-  
+
   const emp = state.employees.find(e => String(e.Legajo) === String(legajo));
   if (!emp) return;
-  
+
   const antigüedadAños = calculateAntiguedadAnios(emp.FechaIngreso, document.getElementById("liq-period").value);
 
   box.innerHTML = `
@@ -880,7 +882,7 @@ function clearLiquidationPreview() {
 function handleCalculatePayroll() {
   const legajo = document.getElementById("liq-employee-select").value;
   const period = document.getElementById("liq-period").value;
-  
+
   if (!legajo) {
     showToast("Por favor, selecciona un empleado", "error");
     return;
@@ -889,10 +891,10 @@ function handleCalculatePayroll() {
     showToast("Por favor, ingresa un período de liquidación", "error");
     return;
   }
-  
+
   const emp = state.employees.find(e => String(e.Legajo) === String(legajo));
   if (!emp) return;
-  
+
   // Capturar opciones
   const options = {
     daysWorked: parseInt(document.getElementById("liq-days-worked").value),
@@ -902,21 +904,21 @@ function handleCalculatePayroll() {
     extraNoRem: parseFloat(document.getElementById("liq-extra-no-rem").value) || 0,
     otherDeductions: parseFloat(document.getElementById("liq-other-deductions").value) || 0
   };
-  
+
   // Validar días
   if (options.daysWorked < 0 || options.daysWorked > 30) {
     showToast("Los días trabajados deben ser entre 0 y 30", "error");
     return;
   }
-  
+
   // Realizar cálculo
   const payroll = runPayrollCalculation(emp, period, options);
   state.calculatedPayroll = payroll;
-  
+
   // Renderizar la tabla de cálculo
   const tbody = document.getElementById("payroll-calculation-lines");
   tbody.innerHTML = "";
-  
+
   payroll.concepts.forEach(c => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -928,19 +930,19 @@ function handleCalculatePayroll() {
     `;
     tbody.appendChild(row);
   });
-  
+
   // Totales
   document.getElementById("tot-remunerative").innerText = formatCurrency(payroll.totalRemunerative);
   document.getElementById("tot-non-remunerative").innerText = formatCurrency(payroll.totalNoRemunerative);
   document.getElementById("tot-deductions").innerText = formatCurrency(payroll.totalDeducciones);
   document.getElementById("tot-net").innerText = formatCurrency(payroll.neto);
-  
+
   // Letras
   document.getElementById("tot-net-text").innerText = numberToWords(payroll.neto);
-  
+
   // Mostrar tabla y botón de confirmación
   document.getElementById("payroll-details-table-wrapper").classList.remove("d-none");
-  
+
   showToast("Cálculo realizado con éxito. Listo para confirmar.", "success");
 }
 
@@ -950,9 +952,9 @@ async function handleConfirmAndPrint() {
     showToast("Calcula primero la liquidación", "error");
     return;
   }
-  
+
   const payroll = state.calculatedPayroll;
-  
+
   // Estructurar el registro de liquidación para la base de datos
   const liquidationRecord = {
     ID: "LIQ-" + Date.now(),
@@ -966,15 +968,15 @@ async function handleConfirmAndPrint() {
     Neto: payroll.neto,
     FechaLiquidacion: new Date().toISOString().split("T")[0]
   };
-  
+
   showToast("Guardando liquidación...", "info");
-  
+
   // Guardar en DB
   await dbSaveLiquidation(liquidationRecord);
-  
+
   // Preparar e Imprimir Recibo
   preparePrintReceipt(liquidationRecord, state.config);
-  
+
   // Limpiar campos e ir al historial
   clearLiquidationPreview();
   document.getElementById("liq-employee-select").value = "";
@@ -984,10 +986,10 @@ async function handleConfirmAndPrint() {
   document.getElementById("liq-hs-100").value = "0";
   document.getElementById("liq-extra-no-rem").value = "0";
   document.getElementById("liq-other-deductions").value = "0";
-  
+
   // Ejecutar comando de impresión
   window.print();
-  
+
   // Navegar al historial para ver la liquidación guardada
   navigate("historial");
 }
@@ -995,7 +997,7 @@ async function handleConfirmAndPrint() {
 // 7. Preparación del HTML para la impresión del Recibo A4
 function preparePrintReceipt(liq, cfg) {
   const concepts = Array.isArray(liq.ConceptosJSON) ? liq.ConceptosJSON : [];
-  
+
   // Rellenar Original (Empleado)
   document.getElementById("pr-emp-name").innerText = cfg.empresa_nombre.toUpperCase();
   document.getElementById("pr-emp-address").innerText = cfg.empresa_direccion;
@@ -1004,7 +1006,7 @@ function preparePrintReceipt(liq, cfg) {
   document.getElementById("pr-legajo").innerText = liq.Legajo;
   document.getElementById("pr-name").innerText = liq.Nombre;
   document.getElementById("pr-cuil").innerText = liq.CUIL;
-  
+
   const emp = state.employees.find(e => String(e.Legajo) === String(liq.Legajo));
   document.getElementById("pr-entry").innerText = emp ? formatDate(emp.FechaIngreso) : "-";
   document.getElementById("pr-job").innerText = emp ? emp.Puesto : "-";
@@ -1025,7 +1027,7 @@ function preparePrintReceipt(liq, cfg) {
   // Renderizar conceptos en ambas tablas
   const conceptsBody1 = document.getElementById("pr-concepts-body");
   const conceptsBody2 = document.getElementById("pr2-concepts-body");
-  
+
   conceptsBody1.innerHTML = "";
   conceptsBody2.innerHTML = "";
 
@@ -1092,7 +1094,7 @@ function reprintReceipt(liqId) {
     showToast("Liquidación no encontrada", "error");
     return;
   }
-  
+
   preparePrintReceipt(liq, state.config);
   window.print();
 }
@@ -1107,11 +1109,11 @@ function renderHistoryTable() {
 
   const filtered = state.liquidations.filter(liq => {
     // Búsqueda
-    const matchesSearch = 
+    const matchesSearch =
       liq.Nombre.toLowerCase().includes(searchVal) ||
       String(liq.Legajo).includes(searchVal) ||
       liq.ID.toLowerCase().includes(searchVal);
-      
+
     // Período
     const matchesPeriod = !periodVal || liq.Periodo === periodVal;
 
@@ -1163,7 +1165,7 @@ function populateConfigFields() {
   document.getElementById("cfg-lct-ley19032").value = state.config.lct_ley19032_pct;
   document.getElementById("cfg-lct-presentismo").value = state.config.lct_presentismo_pct;
   document.getElementById("cfg-lct-antiguedad").value = state.config.lct_antiguedad_pct;
-  
+
   setOnlineStatus(state.isOnline);
 }
 
@@ -1213,19 +1215,19 @@ function deactivateEmployee(legajo) {
 
 function initEventListeners() {
   // --- ACCIONES GENERALES ---
-  
+
   // Modal Empleados
   document.getElementById("btn-add-employee").addEventListener("click", openAddEmployeeModal);
   document.getElementById("btn-close-employee-modal").addEventListener("click", closeEmployeeModal);
   document.getElementById("btn-cancel-employee-form").addEventListener("click", closeEmployeeModal);
-  
+
   // Submit Form Empleado
   document.getElementById("form-employee").addEventListener("submit", async (e) => {
     e.preventDefault();
-    
+
     const legajo = document.getElementById("emp-legajo").value;
     const isEdit = document.getElementById("emp-action").value === "edit";
-    
+
     // Validar duplicado si es nuevo legajo
     if (!isEdit) {
       const exists = state.employees.some(emp => String(emp.Legajo) === String(legajo));
@@ -1234,7 +1236,7 @@ function initEventListeners() {
         return;
       }
     }
-    
+
     const employeeData = {
       Legajo: legajo,
       Nombre: document.getElementById("emp-nombre").value,
@@ -1246,14 +1248,14 @@ function initEventListeners() {
       CBU: document.getElementById("emp-cbu").value,
       Activo: document.getElementById("emp-activo").checked
     };
-    
+
     closeEmployeeModal();
     showToast("Guardando empleado...", "info");
-    
+
     await dbSaveEmployee(employeeData);
     renderEmployeesTable();
   });
-  
+
   // Filtros de búsqueda en empleados
   document.getElementById("employee-search").addEventListener("input", renderEmployeesTable);
   document.getElementById("employee-status-filter").addEventListener("change", renderEmployeesTable);
@@ -1287,7 +1289,7 @@ function initEventListeners() {
   });
 
   // --- SECCIÓN CONFIGURACIÓN ---
-  
+
   // Probar Conexión
   document.getElementById("btn-test-sheets-conn").addEventListener("click", async () => {
     const url = document.getElementById("cfg-sheets-url").value;
@@ -1295,14 +1297,14 @@ function initEventListeners() {
       showToast("Ingresa una URL antes de probar", "error");
       return;
     }
-    
+
     showToast("Probando conexión...", "info");
-    
+
     try {
       const res = await fetch(url, { method: "GET" });
       if (!res.ok) throw new Error();
       const testData = await res.json();
-      
+
       if (testData.status === "success") {
         showToast("Conexión exitosa con Google Sheets", "success");
       } else {
@@ -1319,7 +1321,7 @@ function initEventListeners() {
     const url = document.getElementById("cfg-sheets-url").value;
     state.sheetsUrl = url;
     localStorage.setItem("spectra_sheets_url", url);
-    
+
     showToast("Buscando datos en Google Sheets...", "info");
     await refreshData();
     setOnlineStatus(state.isOnline);
@@ -1337,7 +1339,7 @@ function initEventListeners() {
       empresa_cuit: document.getElementById("cfg-emp-cuit").value,
       empresa_direccion: document.getElementById("cfg-emp-address").value
     };
-    
+
     showToast("Guardando datos...", "info");
     await dbSaveConfig(newConfig);
     updateDashboardStats();
@@ -1353,7 +1355,7 @@ function initEventListeners() {
       lct_presentismo_pct: parseFloat(document.getElementById("cfg-lct-presentismo").value),
       lct_antiguedad_pct: parseFloat(document.getElementById("cfg-lct-antiguedad").value)
     };
-    
+
     showToast("Actualizando fórmulas legales...", "info");
     await dbSaveConfig(newConfig);
   });
@@ -1366,7 +1368,7 @@ function showToast(message, type = "success") {
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  
+
   // Iconos del toast
   let icon = "";
   if (type === "success") {
