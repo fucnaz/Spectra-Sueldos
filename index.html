@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpectraSueldos - Sistema de Liquidación de Sueldos</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+  <!-- APLICACIÓN PRINCIPAL (Se oculta en modo impresión) -->
+  <div id="app-container" class="app-layout">
+    
+    <!-- BARRA LATERAL (SIDEBAR) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-wrapper">
+          <img src="image/logorendondo.png" alt="SpectraSueldos Logo" class="app-logo">
+        </div>
+        <div class="brand-info">
+          <h1 class="brand-title">Spectra<span>Sueldos</span></h1>
+          <span class="brand-subtitle">Liquidación LCT</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-target="tablero">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span>Tablero</span>
+        </button>
+        <button class="nav-btn" data-target="empleados">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Empleados</span>
+        </button>
+        <button class="nav-btn" data-target="liquidar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          <span>Liquidar Sueldo</span>
+        </button>
+        <button class="nav-btn" data-target="historial">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Historial</span>
+        </button>
+        <button class="nav-btn" data-target="configuracion">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Configuración</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="db-status-container">
+          <div class="db-indicator offline" id="db-indicator-dot"></div>
+          <div class="db-text-info">
+            <span class="db-status-label" id="db-status-title">Base de datos local</span>
+            <span class="db-status-detail" id="db-status-desc">LocalStorage activado</span>
+          </div>
+        </div>
+        
+        <div class="theme-switch-wrapper">
+          <span class="theme-label">Tema</span>
+          <button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar tema">
+            <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.22" x2="5.64" y2="17.78"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="moon-icon d-none" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+      
+      <!-- NOTIFICACIONES (ALERTAS FLOTANTES) -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- SECTION: TABLERO (DASHBOARD) -->
+      <section id="section-tablero" class="app-section">
+        <header class="section-header">
+          <div class="header-text">
+            <h2>Bienvenido a SpectraSueldos</h2>
+            <p>Resumen general del estado de liquidaciones y nómina.</p>
+          </div>
+          <div class="quick-date" id="current-date-display">15 de Agosto de 2026</div>
+        </header>
+
+        <!-- CARDS DE ESTADÍSTICAS -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper purple">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Empleados Activos</span>
+              <h3 class="stat-value" id="stat-total-employees">0</h3>
+              <span class="stat-change text-success">Registrados en el sistema</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Total Liquidado (Mes Act.)</span>
+              <h3 class="stat-value" id="stat-total-payroll">$0.00</h3>
+              <span class="stat-change" id="stat-current-period-name">Agosto 2026</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Recibos Emitidos</span>
+              <h3 class="stat-value" id="stat-total-receipts">0</h3>
+              <span class="stat-change">En el historial total</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN DE ACCIONES RÁPIDAS Y NOVEDADES -->
+        <div class="dashboard-body-layout">
+          <!-- Historial Reciente -->
+          <div class="dashboard-card main-table-card">
+            <div class="card-header">
+              <h4>Últimas Liquidaciones Realizadas</h4>
+              <button class="card-header-action-btn" id="btn-dashboard-view-history">Ver todo</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Empleado</th>
+                    <th>Período</th>
+                    <th>Total Bruto</th>
+                    <th>Descuentos</th>
+                    <th>Neto a Cobrar</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-liquidations">
+                  <tr>
+                    <td colspan="6" class="text-muted text-center py-4">No hay liquidaciones recientes.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Acciones Rápidas -->
+          <div class="dashboard-card side-actions-card">
+            <h4>Acciones Rápidas</h4>
+            <div class="quick-actions-list">
+              <button class="action-card-btn" id="btn-quick-liquidate">
+                <span class="action-icon purple">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </span>
+                <span class="action-text">
+                  <strong>Nueva Liquidación</strong>
+                  <span>Calcular sueldo del mes</span>
+                </span>
+              </button>
+
+              <button class="action-card-btn" id="btn-quick-add-employee">
+                <span class="action-icon blue">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="11" x2="19" y2="17"/><line x1="16" y1="14" x2="22" y2="14"/></svg>
+                </span>
+                <span class="action-text">
+                  <strong>Alta de Empleado</strong>
+                  <span>Registrar nuevo legajo</span>
+                </span>
+              </button>
+
+              <button class="action-card-btn" id="btn-quick-config-sheets">
+                <span class="action-icon green">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </span>
+                <span class="action-text">
+                  <strong>Conectar Planilla</strong>
+                  <span>Configurar Google Sheets</span>
+                </span>
+              </button>
+            </div>
+
+            <!-- Resumen de Configuración de Empresa -->
+            <div class="company-quick-info mt-4">
+              <h5>Datos de la Empresa</h5>
+              <div class="company-badge-info">
+                <p><strong>Razón Social:</strong> <span id="company-lbl-name">Cargando...</span></p>
+                <p><strong>CUIT:</strong> <span id="company-lbl-cuit">Cargando...</span></p>
+                <p><strong>Dirección:</strong> <span id="company-lbl-address">Cargando...</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: EMPLEADOS -->
+      <section id="section-empleados" class="app-section d-none">
+        <header class="section-header">
+          <div class="header-text">
+            <h2>Gestión de Empleados</h2>
+            <p>Alta, baja, edición e historial de la nómina de trabajadores.</p>
+          </div>
+          <button class="primary-btn" id="btn-add-employee">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Agregar Empleado
+          </button>
+        </header>
+
+        <!-- FILTROS Y BÚSQUEDA -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="employee-search" placeholder="Buscar por nombre, legajo o CUIL...">
+          </div>
+          <div class="filter-options">
+            <select id="employee-status-filter" class="form-select">
+              <option value="all">Todos los estados</option>
+              <option value="active" selected>Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABLA DE EMPLEADOS -->
+        <div class="dashboard-card">
+          <div class="table-responsive">
+            <table class="data-table" id="table-employees">
+              <thead>
+                <tr>
+                  <th>Legajo</th>
+                  <th>Nombre y Apellido</th>
+                  <th>CUIL</th>
+                  <th>Fecha Ingreso</th>
+                  <th>Puesto / Categoría</th>
+                  <th>Básico Pactado</th>
+                  <th>Obra Social</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="employees-table-body">
+                <!-- Se poblará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: LIQUIDAR SUELDO -->
+      <section id="section-liquidar" class="app-section d-none">
+        <header class="section-header">
+          <div class="header-text">
+            <h2>Liquidar Sueldo</h2>
+            <p>Generación y cálculo de haberes y retenciones bajo Ley de Contrato de Trabajo (Argentina).</p>
+          </div>
+        </header>
+
+        <div class="liquidation-container">
+          
+          <!-- PANEL IZQUIERDO: PARÁMETROS -->
+          <div class="liquidation-sidebar">
+            <div class="dashboard-card">
+              <h3>Parámetros Generales</h3>
+              
+              <div class="form-group mt-3">
+                <label for="liq-employee-select">Seleccionar Empleado</label>
+                <select id="liq-employee-select" class="form-select">
+                  <option value="">Seleccione un empleado...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="liq-period">Período de Liquidación</label>
+                <input type="month" id="liq-period" class="form-input">
+              </div>
+
+              <hr class="separator-light">
+
+              <h3>Novedades del Período</h3>
+              
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="liq-days-worked">Días Trabajados</label>
+                  <input type="number" id="liq-days-worked" class="form-input" min="0" max="30" value="30">
+                </div>
+                <div class="form-group">
+                  <label for="liq-presentismo-opt">¿Presentismo?</label>
+                  <select id="liq-presentismo-opt" class="form-select">
+                    <option value="si">Sí (Cumple)</option>
+                    <option value="no">No (Inasistencias)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="liq-hs-50">Horas Extras 50%</label>
+                  <input type="number" id="liq-hs-50" class="form-input" min="0" value="0">
+                </div>
+                <div class="form-group">
+                  <label for="liq-hs-100">Horas Extras 100%</label>
+                  <input type="number" id="liq-hs-100" class="form-input" min="0" value="0">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="liq-extra-no-rem">Conceptos No Remunerativos ($)</label>
+                <input type="number" id="liq-extra-no-rem" class="form-input" min="0" value="0" placeholder="Viáticos, bonos no remunerativos...">
+              </div>
+
+              <div class="form-group">
+                <label for="liq-other-deductions">Otras Deducciones ($)</label>
+                <input type="number" id="liq-other-deductions" class="form-input" min="0" value="0" placeholder="Embargos, préstamos, adelantos...">
+              </div>
+
+              <div class="button-actions-container mt-4">
+                <button class="primary-btn w-100" id="btn-calculate-payroll">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                  Calcular y Previsualizar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL DERECHO: DETALLE DE PREVISUALIZACIÓN -->
+          <div class="liquidation-preview">
+            <div class="dashboard-card h-100">
+              <div class="preview-header">
+                <h3>Previsualización del Recibo</h3>
+                <span class="badge badge-purple" id="preview-badge-status">Borrador</span>
+              </div>
+              
+              <!-- Detalle Resumido -->
+              <div class="preview-employee-summary" id="preview-employee-info-box">
+                <div class="text-center text-muted py-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3 text-muted"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <p>Selecciona un empleado y periodo para calcular la liquidación.</p>
+                </div>
+              </div>
+
+              <!-- Tabla de Liquidación -->
+              <div id="payroll-details-table-wrapper" class="payroll-table-wrapper d-none">
+                <table class="preview-receipt-table">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Concepto</th>
+                      <th class="text-right">Remunerativo</th>
+                      <th class="text-right">No Remun.</th>
+                      <th class="text-right">Deducciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="payroll-calculation-lines">
+                    <!-- Conceptos calculados dinámicamente -->
+                  </tbody>
+                  <tfoot>
+                    <tr class="totals-row">
+                      <td colspan="2">Subtotales</td>
+                      <td class="text-right text-success" id="tot-remunerative">$0.00</td>
+                      <td class="text-right text-info" id="tot-non-remunerative">$0.00</td>
+                      <td class="text-right text-danger" id="tot-deductions">$0.00</td>
+                    </tr>
+                    <tr class="net-row">
+                      <td colspan="4">NETO A PERCIBIR (A cobrar)</td>
+                      <td class="text-right" id="tot-net">$0.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+
+                <div class="net-text-desc" id="tot-net-text">
+                  Son Pesos Cero.
+                </div>
+
+                <div class="preview-actions mt-4">
+                  <button class="primary-btn" id="btn-save-and-print">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    Confirmar, Guardar e Imprimir
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECTION: HISTORIAL -->
+      <section id="section-historial" class="app-section d-none">
+        <header class="section-header">
+          <div class="header-text">
+            <h2>Historial de Liquidaciones</h2>
+            <p>Consulta de recibos emitidos, filtros por periodo y reimpresión de comprobantes.</p>
+          </div>
+        </header>
+
+        <!-- Filtros del Historial -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="history-search" placeholder="Buscar por legajo, nombre o ID...">
+          </div>
+          <div class="filter-options">
+            <input type="month" id="history-period-filter" class="form-input">
+            <button class="secondary-btn" id="btn-clear-history-filters">Limpiar Filtros</button>
+          </div>
+        </div>
+
+        <!-- Tabla Historial -->
+        <div class="dashboard-card">
+          <div class="table-responsive">
+            <table class="data-table" id="table-history">
+              <thead>
+                <tr>
+                  <th>ID Liquidación</th>
+                  <th>Legajo</th>
+                  <th>Nombre y Apellido</th>
+                  <th>Período</th>
+                  <th>Total Bruto</th>
+                  <th>Deducciones</th>
+                  <th>Neto a Cobrar</th>
+                  <th>Fecha Emisión</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- Se poblará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: CONFIGURACIÓN -->
+      <section id="section-configuracion" class="app-section d-none">
+        <header class="section-header">
+          <div class="header-text">
+            <h2>Configuración del Sistema</h2>
+            <p>Enlace de base de datos, parámetros impositivos y datos del empleador.</p>
+          </div>
+        </header>
+
+        <div class="config-grid">
+          
+          <!-- COLUMNA 1: Datos de Google Sheets -->
+          <div class="dashboard-card">
+            <h3>Conexión con Google Sheets</h3>
+            <p class="section-sub-title">Configura la sincronización remota mediante Google Apps Script.</p>
+            
+            <div class="form-group mt-3">
+              <label for="cfg-sheets-url">URL de Google Sheets Web App</label>
+              <input type="url" id="cfg-sheets-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+              <span class="form-help">Pega la URL de tu implementación web obtenida en el Paso 3 del README.</span>
+            </div>
+
+            <div class="config-connection-actions mt-4">
+              <button class="secondary-btn mr-2" id="btn-test-sheets-conn">
+                Probar Conexión
+              </button>
+              <button class="primary-btn" id="btn-save-sheets-config">
+                Guardar URL
+              </button>
+            </div>
+
+            <div class="sync-panel mt-4 d-none" id="sync-panel-data">
+              <hr class="separator-light">
+              <h4>Sincronización de Datos</h4>
+              <p class="text-muted text-sm mb-3">Tienes datos locales. Sincronízalos con la hoja de cálculo.</p>
+              <button class="secondary-btn w-100" id="btn-sync-local-to-sheets">
+                Subir datos locales a Google Sheets
+              </button>
+            </div>
+          </div>
+
+          <!-- COLUMNA 2: Datos de la Empresa (Empleador) -->
+          <div class="dashboard-card">
+            <h3>Datos del Empleador (Empresa)</h3>
+            <p class="section-sub-title">Estos datos aparecerán en los encabezados de los recibos de sueldo.</p>
+
+            <form id="form-config-employer">
+              <div class="form-group mt-3">
+                <label for="cfg-emp-name">Razón Social / Nombre Completo</label>
+                <input type="text" id="cfg-emp-name" class="form-input" required>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="cfg-emp-cuit">CUIT</label>
+                  <input type="text" id="cfg-emp-cuit" class="form-input" placeholder="30-00000000-0" required>
+                </div>
+                <div class="form-group">
+                  <label for="cfg-emp-address">Domicilio Comercial</label>
+                  <input type="text" id="cfg-emp-address" class="form-input" required>
+                </div>
+              </div>
+
+              <button type="submit" class="primary-btn mt-3" id="btn-save-employer-config">
+                Actualizar Datos Empresa
+              </button>
+            </form>
+          </div>
+
+          <!-- COLUMNA 3: Porcentajes LCT (Leyes de Contrato de Trabajo) -->
+          <div class="dashboard-card grid-col-span-2">
+            <h3>Parámetros de Liquidación (Fórmulas Ley Argentina)</h3>
+            <p class="section-sub-title">Configuración de los porcentajes y valores legales aplicables a los recibos.</p>
+            
+            <form id="form-config-lct" class="form-grid-3 mt-3">
+              <div class="form-group">
+                <label for="cfg-lct-jubilacion">Jubilación (%)</label>
+                <input type="number" id="cfg-lct-jubilacion" class="form-input" step="0.01" min="0" value="11.0">
+                <span class="form-help">Porcentaje de descuento para Jubilación (Default 11.0%)</span>
+              </div>
+              <div class="form-group">
+                <label for="cfg-lct-obrasocial">Obra Social (%)</label>
+                <input type="number" id="cfg-lct-obrasocial" class="form-input" step="0.01" min="0" value="3.0">
+                <span class="form-help">Aporte a Obra Social (Default 3.0%)</span>
+              </div>
+              <div class="form-group">
+                <label for="cfg-lct-ley19032">Ley 19032 INSSJP (%)</label>
+                <input type="number" id="cfg-lct-ley19032" class="form-input" step="0.01" min="0" value="3.0">
+                <span class="form-help">Aporte INSSJP (Default 3.0%)</span>
+              </div>
+              <div class="form-group">
+                <label for="cfg-lct-presentismo">Tasa de Presentismo (%)</label>
+                <input type="number" id="cfg-lct-presentismo" class="form-input" step="0.01" min="0" value="8.33">
+                <span class="form-help">Calculado sobre Básico + Antigüedad (Default 8.33% o 10.0%)</span>
+              </div>
+              <div class="form-group">
+                <label for="cfg-lct-antiguedad">Antigüedad Anual (%)</label>
+                <input type="number" id="cfg-lct-antiguedad" class="form-input" step="0.01" min="0" value="1.0">
+                <span class="form-help">Porcentaje por año de servicio (Default 1.0% o 2.0%)</span>
+              </div>
+              <div class="form-group d-flex align-items-end">
+                <button type="submit" class="primary-btn w-100" id="btn-save-lct-config">
+                  Actualizar Fórmulas Ley
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL: AGREGAR / EDITAR EMPLEADO -->
+  <div id="modal-employee" class="modal-overlay d-none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-employee-title">Agregar Nuevo Empleado</h3>
+        <button class="modal-close-btn" id="btn-close-employee-modal">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      
+      <form id="form-employee" class="modal-body">
+        <!-- Campos ocultos de edición -->
+        <input type="hidden" id="emp-action" value="create">
+        
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="emp-legajo">Legajo / N° de Ficha</label>
+            <input type="text" id="emp-legajo" class="form-input" required placeholder="Ej: 101">
+          </div>
+          <div class="form-group">
+            <label for="emp-nombre">Nombre y Apellido</label>
+            <input type="text" id="emp-nombre" class="form-input" required placeholder="Ej: Juan Pérez">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="emp-cuil">CUIL</label>
+            <input type="text" id="emp-cuil" class="form-input" required placeholder="Ej: 20-12345678-9">
+          </div>
+          <div class="form-group">
+            <label for="emp-fecha-ingreso">Fecha de Ingreso</label>
+            <input type="date" id="emp-fecha-ingreso" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="emp-puesto">Puesto / Categoría</label>
+            <input type="text" id="emp-puesto" class="form-input" required placeholder="Ej: Administrativo A">
+          </div>
+          <div class="form-group">
+            <label for="emp-basico">Sueldo Básico Pactado ($)</label>
+            <input type="number" id="emp-basico" class="form-input" required min="0" placeholder="Ej: 450000">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="emp-obrasocial">Obra Social</label>
+            <input type="text" id="emp-obrasocial" class="form-input" required placeholder="Ej: OSECAC">
+          </div>
+          <div class="form-group">
+            <label for="emp-cbu">CBU / Cuenta Bancaria</label>
+            <input type="text" id="emp-cbu" class="form-input" placeholder="CBU de 22 dígitos para depósito">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="emp-activo" checked>
+            <span class="checkmark"></span>
+            El empleado se encuentra activo en la nómina
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="secondary-btn" id="btn-cancel-employee-form">Cancelar</button>
+          <button type="submit" class="primary-btn" id="btn-submit-employee-form">Guardar Empleado</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PLANTILLA DE IMPRESIÓN DEL RECIBO DE SUELDO (Diseño A4 para @media print) -->
+  <!-- Esta sección solo se renderiza al imprimir y contiene original + duplicado -->
+  <div id="print-receipt-container" class="print-only">
+    
+    <!-- ORIGINAL: COPIA EMPLEADO -->
+    <div class="print-receipt-page">
+      <div class="receipt-header-row">
+        <div class="receipt-col-employer">
+          <h2 class="receipt-company-name" id="pr-emp-name">EMPRESA S.A.</h2>
+          <p id="pr-emp-address">Av. Corrientes 1234, CABA</p>
+          <p><strong>CUIT:</strong> <span id="pr-emp-cuit">30-12345678-9</span></p>
+        </div>
+        <div class="receipt-col-title">
+          <div class="receipt-title-box">
+            <h1>RECIBO DE SUELDO</h1>
+            <span class="receipt-copy-type">COPIA ORIGINAL - PARA EL TRABAJADOR</span>
+          </div>
+          <div class="receipt-period-box">
+            <p><strong>Período Liquidado:</strong> <span id="pr-period">08/2026</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-employee-info-grid">
+        <div><strong>Legajo:</strong> <span id="pr-legajo">101</span></div>
+        <div><strong>Apellido y Nombre:</strong> <span id="pr-name">Juan Pérez</span></div>
+        <div><strong>CUIL:</strong> <span id="pr-cuil">20-34567890-9</span></div>
+        <div><strong>Fecha Ingreso:</strong> <span id="pr-entry">15/03/2020</span></div>
+        <div><strong>Categoría/Puesto:</strong> <span id="pr-job">Administrativo A</span></div>
+        <div><strong>CBU Depósito:</strong> <span id="pr-cbu">-</span></div>
+      </div>
+
+      <table class="receipt-concepts-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">Código</th>
+            <th>Concepto / Descripción</th>
+            <th style="width: 80px; text-align: center;">Cant. / %</th>
+            <th style="width: 110px; text-align: right;">Hab. Remun.</th>
+            <th style="width: 110px; text-align: right;">Hab. No Rem.</th>
+            <th style="width: 110px; text-align: right;">Descuentos</th>
+          </tr>
+        </thead>
+        <tbody id="pr-concepts-body">
+          <!-- Creado dinámicamente -->
+        </tbody>
+        <tfoot>
+          <tr class="totals-separator">
+            <td colspan="3" class="text-right"><strong>Subtotales:</strong></td>
+            <td id="pr-tot-rem" class="text-right">$0.00</td>
+            <td id="pr-tot-norem" class="text-right">$0.00</td>
+            <td id="pr-tot-desc" class="text-right">$0.00</td>
+          </tr>
+          <tr class="net-payment-row">
+            <td colspan="4" class="net-payment-label">NETO A PERCIBIR (EN PESOS)</td>
+            <td colspan="2" id="pr-tot-net" class="net-payment-value">$0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="receipt-amount-words">
+        <strong>Importe neto escrito en letras:</strong> <span id="pr-net-words">Son pesos cero.</span>
+      </div>
+
+      <div class="receipt-legal-text">
+        "Recibí el importe de esta liquidación de la cual firmo el duplicado, conforme a las leyes vigentes, dejando constancia de que no se me adeuda suma alguna por ningún concepto hasta la fecha."
+      </div>
+
+      <div class="receipt-signatures-grid">
+        <div class="signature-box text-center">
+          <div class="signature-line"></div>
+          <span>Firma del Empleador</span>
+        </div>
+        <div class="signature-box text-center">
+          <div class="signature-line"></div>
+          <span>Firma del Trabajador</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LÍNEA DE CORTE -->
+    <div class="print-cut-line">
+      <span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg> Cortar aquí</span>
+    </div>
+
+    <!-- DUPLICADO: COPIA EMPLEADOR -->
+    <div class="print-receipt-page">
+      <div class="receipt-header-row">
+        <div class="receipt-col-employer">
+          <h2 class="receipt-company-name" id="pr2-emp-name">EMPRESA S.A.</h2>
+          <p id="pr2-emp-address">Av. Corrientes 1234, CABA</p>
+          <p><strong>CUIT:</strong> <span id="pr2-emp-cuit">30-12345678-9</span></p>
+        </div>
+        <div class="receipt-col-title">
+          <div class="receipt-title-box">
+            <h1>RECIBO DE SUELDO</h1>
+            <span class="receipt-copy-type">COPIA DUPLICADO - PARA EL EMPLEADOR (CON DEVOLUCIÓN FIRMADA)</span>
+          </div>
+          <div class="receipt-period-box">
+            <p><strong>Período Liquidado:</strong> <span id="pr2-period">08/2026</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-employee-info-grid">
+        <div><strong>Legajo:</strong> <span id="pr2-legajo">101</span></div>
+        <div><strong>Apellido y Nombre:</strong> <span id="pr2-name">Juan Pérez</span></div>
+        <div><strong>CUIL:</strong> <span id="pr2-cuil">20-34567890-9</span></div>
+        <div><strong>Fecha Ingreso:</strong> <span id="pr2-entry">15/03/2020</span></div>
+        <div><strong>Categoría/Puesto:</strong> <span id="pr2-job">Administrativo A</span></div>
+        <div><strong>CBU Depósito:</strong> <span id="pr2-cbu">-</span></div>
+      </div>
+
+      <table class="receipt-concepts-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">Código</th>
+            <th>Concepto / Descripción</th>
+            <th style="width: 80px; text-align: center;">Cant. / %</th>
+            <th style="width: 110px; text-align: right;">Hab. Remun.</th>
+            <th style="width: 110px; text-align: right;">Hab. No Rem.</th>
+            <th style="width: 110px; text-align: right;">Descuentos</th>
+          </tr>
+        </thead>
+        <tbody id="pr2-concepts-body">
+          <!-- Creado dinámicamente -->
+        </tbody>
+        <tfoot>
+          <tr class="totals-separator">
+            <td colspan="3" class="text-right"><strong>Subtotales:</strong></td>
+            <td id="pr2-tot-rem" class="text-right">$0.00</td>
+            <td id="pr2-tot-norem" class="text-right">$0.00</td>
+            <td id="pr2-tot-desc" class="text-right">$0.00</td>
+          </tr>
+          <tr class="net-payment-row">
+            <td colspan="4" class="net-payment-label">NETO A PERCIBIR (EN PESOS)</td>
+            <td colspan="2" id="pr2-tot-net" class="net-payment-value">$0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="receipt-amount-words">
+        <strong>Importe neto escrito en letras:</strong> <span id="pr2-net-words">Son pesos cero.</span>
+      </div>
+
+      <div class="receipt-legal-text">
+        "Recibí el importe de esta liquidación de la cual firmo el duplicado, conforme a las leyes vigentes, dejando constancia de que no se me adeuda suma alguna por ningún concepto hasta la fecha."
+      </div>
+
+      <div class="receipt-signatures-grid">
+        <div class="signature-box text-center">
+          <div class="signature-line"></div>
+          <span>Firma del Empleador</span>
+        </div>
+        <div class="signature-box text-center">
+          <div class="signature-line"></div>
+          <span>Firma del Trabajador</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- App Main Javascript -->
+  <script src="app.js"></script>
+</body>
+</html>
