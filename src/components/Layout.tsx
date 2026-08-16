@@ -11,7 +11,8 @@ import {
   Moon,
   LogOut,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -43,6 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         { id: 'empleados' as const, label: 'Legajos Empleados', icon: Users },
         { id: 'novedades' as const, label: 'Novedades/Horas', icon: FileSpreadsheet },
         { id: 'liquidaciones' as const, label: 'Liquidación', icon: Receipt },
+        { id: 'configuracion' as const, label: 'Configuración', icon: Settings },
       ];
 
   const handleNavClick = (view: typeof currentView) => {

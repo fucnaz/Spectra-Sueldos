@@ -1,17 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { calcularLiquidacion } from '../utils/calculadora';
-import type { Empleado, Novedad, Liquidacion } from '../utils/calculadora';
+import type { Empleado, Novedad, Liquidacion, Convenio } from '../utils/calculadora';
 
 interface AppContextType {
   empleados: Empleado[];
   novedades: Novedad[];
   liquidaciones: Liquidacion[];
-  currentView: 'dashboard' | 'empleados' | 'novedades' | 'liquidaciones' | 'portal';
+  convenios: Convenio[];
+  currentView: 'dashboard' | 'empleados' | 'novedades' | 'liquidaciones' | 'portal' | 'configuracion';
   periodoActivo: string;
   portalEmpleadoId: string | null;
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
-  setCurrentView: (view: 'dashboard' | 'empleados' | 'novedades' | 'liquidaciones' | 'portal') => void;
+  setCurrentView: (view: 'dashboard' | 'empleados' | 'novedades' | 'liquidaciones' | 'portal' | 'configuracion') => void;
   setPeriodoActivo: (periodo: string) => void;
   setPortalEmpleadoId: (id: string | null) => void;
   
@@ -22,12 +23,21 @@ interface AppContextType {
   guardarNovedad: (nov: Novedad) => void;
   ejecutarLiquidacion: (tipo: Liquidacion['tipo']) => void;
   eliminarLiquidacion: (id: string) => void;
+  actualizarConvenio: (conv: Convenio) => void;
   resetDemoData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Initial Mock Data
+// Initial Mock Data
+const MOCK_CONVENIOS: Convenio[] = [
+  { id: 'cct-fuera', nombre: 'Fuera de Convenio', codigoCCT: '-', jubilacion: 11, obraSocial: 3, ley19032: 3, cuotaSindical: 0 },
+  { id: 'cct-comercio', nombre: 'Comercio (SEC)', codigoCCT: '130/75', jubilacion: 11, obraSocial: 3, ley19032: 3, cuotaSindical: 2 },
+  { id: 'cct-uom', nombre: 'Metalúrgicos (UOM)', codigoCCT: '260/75', jubilacion: 11, obraSocial: 3, ley19032: 3, cuotaSindical: 2.5 },
+  { id: 'cct-uthgra', nombre: 'Gastronómicos (UTHGRA)', codigoCCT: '389/04', jubilacion: 11, obraSocial: 3, ley19032: 3, cuotaSindical: 2.5 }
+];
+
 const MOCK_EMPLEADOS: Empleado[] = [
   {
     id: 'emp-1',
@@ -41,6 +51,7 @@ const MOCK_EMPLEADOS: Empleado[] = [
     obraSocial: 'OSDE 210',
     sindicato: true,
     sindicatoNombre: 'SEC (Comercio)',
+    convenioId: 'cct-comercio',
     cbu: '0070001220000001234567',
     estado: 'Activo'
   },
@@ -56,6 +67,7 @@ const MOCK_EMPLEADOS: Empleado[] = [
     obraSocial: 'OSECAC',
     sindicato: false,
     sindicatoNombre: '',
+    convenioId: 'cct-fuera',
     cbu: '0110002330000009876543',
     estado: 'Activo'
   },
@@ -71,6 +83,7 @@ const MOCK_EMPLEADOS: Empleado[] = [
     obraSocial: 'OSDE 310',
     sindicato: false,
     sindicatoNombre: '',
+    convenioId: 'cct-fuera',
     cbu: '1910003440000004567890',
     estado: 'Activo'
   },
@@ -86,6 +99,7 @@ const MOCK_EMPLEADOS: Empleado[] = [
     obraSocial: 'OSECAC',
     sindicato: true,
     sindicatoNombre: 'SEC (Comercio)',
+    convenioId: 'cct-comercio',
     cbu: '0070001220000004445556',
     estado: 'Activo'
   }
@@ -107,6 +121,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [liquidaciones, setLiquidaciones] = useState<Liquidacion[]>([]);
+  const [convenios, setConvenios] = useState<Convenio[]>([]);
 
   // Initialize and load from LocalStorage
   useEffect(() => {
@@ -119,9 +134,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedEmpleados = localStorage.getItem('spectra_empleados');
     const savedNovedades = localStorage.getItem('spectra_novedades');
     const savedLiquidaciones = localStorage.getItem('spectra_liquidaciones');
+    const savedConvenios = localStorage.getItem('spectra_convenios');
+
+    let currentConvenios = MOCK_CONVENIOS;
+    if (savedConvenios) {
+      currentConvenios = JSON.parse(savedConvenios);
+      setConvenios(currentConvenios);
+    } else {
+      setConvenios(MOCK_CONVENIOS);
+      localStorage.setItem('spectra_convenios', JSON.stringify(MOCK_CONVENIOS));
+    }
 
     if (savedEmpleados && savedNovedades && savedLiquidaciones) {
-      setEmpleados(JSON.parse(savedEmpleados));
+      // Ensure existing employees have a convenioId mapped if not present
+      const loadedEmps = JSON.parse(savedEmpleados).map((e: Empleado) => {
+        if (!e.convenioId) {
+          if (e.sindicato && e.sindicatoNombre?.toLowerCase().includes('uom')) {
+            e.convenioId = 'cct-uom';
+          } else if (e.sindicato && (e.sindicatoNombre?.toLowerCase().includes('sec') || e.sindicatoNombre?.toLowerCase().includes('comercio'))) {
+            e.convenioId = 'cct-comercio';
+          } else if (e.sindicato && (e.sindicatoNombre?.toLowerCase().includes('uthgra') || e.sindicatoNombre?.toLowerCase().includes('gastro'))) {
+            e.convenioId = 'cct-uthgra';
+          } else {
+            e.convenioId = 'cct-fuera';
+          }
+        }
+        return e;
+      });
+      setEmpleados(loadedEmps);
       setNovedades(JSON.parse(savedNovedades));
       setLiquidaciones(JSON.parse(savedLiquidaciones));
     } else {
@@ -131,7 +171,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       // Pre-calculate past liquidations for the previous month (July 2026) for beautiful demo metrics
       const pastLiqs = MOCK_EMPLEADOS.map(emp => {
-        // Find if they have any specific novedades (simulate simple ones)
         const mockNov: Novedad = {
           empleadoId: emp.id,
           periodo: '2026-07',
@@ -141,7 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           bonoNoRemunerativo: 40000,
           bonoRemunerativo: 0
         };
-        return calcularLiquidacion(emp, mockNov, '2026-07', 'Mensual');
+        return calcularLiquidacion(emp, mockNov, '2026-07', 'Mensual', currentConvenios);
       });
       setLiquidaciones(pastLiqs);
 
@@ -158,13 +197,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Sync state changes with localStorage
-  const saveToLocal = (newEmp: Empleado[], newNov: Novedad[], newLiqs: Liquidacion[]) => {
+  const saveToLocal = (newEmp: Empleado[], newNov: Novedad[], newLiqs: Liquidacion[], newConvs: Convenio[] = convenios) => {
     setEmpleados(newEmp);
     setNovedades(newNov);
     setLiquidaciones(newLiqs);
+    setConvenios(newConvs);
     localStorage.setItem('spectra_empleados', JSON.stringify(newEmp));
     localStorage.setItem('spectra_novedades', JSON.stringify(newNov));
     localStorage.setItem('spectra_liquidaciones', JSON.stringify(newLiqs));
+    localStorage.setItem('spectra_convenios', JSON.stringify(newConvs));
   };
 
   const agregarEmpleado = (empData: Omit<Empleado, 'id' | 'estado'>) => {
@@ -213,7 +254,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newLiqs = targetEmployees.map(emp => {
       const empNov = novedades.find(n => n.empleadoId === emp.id && n.periodo === periodoActivo);
-      return calcularLiquidacion(emp, empNov, periodoActivo, tipo);
+      return calcularLiquidacion(emp, empNov, periodoActivo, tipo, convenios);
     });
 
     saveToLocal(empleados, novedades, [...liquidaciones, ...newLiqs]);
@@ -224,13 +265,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveToLocal(empleados, novedades, updated);
   };
 
+  const actualizarConvenio = (conv: Convenio) => {
+    const updated = convenios.map(c => c.id === conv.id ? conv : c);
+    saveToLocal(empleados, novedades, liquidaciones, updated);
+  };
+
   const resetDemoData = () => {
     localStorage.removeItem('spectra_empleados');
     localStorage.removeItem('spectra_novedades');
     localStorage.removeItem('spectra_liquidaciones');
+    localStorage.removeItem('spectra_convenios');
     
     setEmpleados(MOCK_EMPLEADOS);
     setNovedades(MOCK_NOVEDADES);
+    setConvenios(MOCK_CONVENIOS);
     
     const pastLiqs = MOCK_EMPLEADOS.map(emp => {
       const mockNov: Novedad = {
@@ -242,13 +290,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bonoNoRemunerativo: 40000,
         bonoRemunerativo: 0
       };
-      return calcularLiquidacion(emp, mockNov, '2026-07', 'Mensual');
+      return calcularLiquidacion(emp, mockNov, '2026-07', 'Mensual', MOCK_CONVENIOS);
     });
     
     setLiquidaciones(pastLiqs);
     localStorage.setItem('spectra_empleados', JSON.stringify(MOCK_EMPLEADOS));
     localStorage.setItem('spectra_novedades', JSON.stringify(MOCK_NOVEDADES));
     localStorage.setItem('spectra_liquidaciones', JSON.stringify(pastLiqs));
+    localStorage.setItem('spectra_convenios', JSON.stringify(MOCK_CONVENIOS));
   };
 
   return (
@@ -256,6 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       empleados,
       novedades,
       liquidaciones,
+      convenios,
       currentView,
       periodoActivo,
       portalEmpleadoId,
@@ -270,6 +320,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       guardarNovedad,
       ejecutarLiquidacion,
       eliminarLiquidacion,
+      actualizarConvenio,
       resetDemoData
     }}>
       {children}

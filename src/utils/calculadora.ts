@@ -1,3 +1,13 @@
+export interface Convenio {
+  id: string;
+  nombre: string;
+  codigoCCT: string;
+  jubilacion: number;
+  obraSocial: number;
+  ley19032: number;
+  cuotaSindical: number;
+}
+
 export interface Empleado {
   id: string;
   nombre: string;
@@ -10,6 +20,7 @@ export interface Empleado {
   obraSocial: string;
   sindicato: boolean;
   sindicatoNombre: string;
+  convenioId?: string;
   cbu: string;
   estado: 'Activo' | 'Baja';
 }
@@ -123,7 +134,8 @@ export function calcularLiquidacion(
   empleado: Empleado,
   novedad: Novedad | undefined,
   periodo: string,
-  tipo: Liquidacion['tipo']
+  tipo: Liquidacion['tipo'],
+  convenios?: Convenio[]
 ): Liquidacion {
   const conceptos: ConceptoLiquidado[] = [];
   const antiguedadAnios = calcularAntiguedad(empleado.fechaIngreso);
@@ -268,44 +280,58 @@ export function calcularLiquidacion(
     .reduce((sum, c) => sum + c.importe, 0);
 
   // 8. Deducciones de Ley sobre el Total Remunerativo (siempre positivo para deducir)
-  // Jubilación (11%)
-  const jubilacion = totalRemunerativo * 0.11;
+  const convenio = convenios?.find(c => c.id === empleado.convenioId) || {
+    id: 'cct-fuera',
+    nombre: 'Fuera de Convenio',
+    codigoCCT: '-',
+    jubilacion: 11,
+    obraSocial: 3,
+    ley19032: 3,
+    cuotaSindical: 0
+  };
+
+  // Jubilación
+  const pctJubilacion = convenio.jubilacion;
+  const jubilacion = totalRemunerativo * (pctJubilacion / 100);
   conceptos.push({
     codigo: '310',
     descripcion: 'Jubilación',
     tipo: 'deduccion',
-    porcentaje: 11,
+    porcentaje: pctJubilacion,
     importe: parseFloat(jubilacion.toFixed(2))
   });
 
-  // Obra Social (3%)
-  const obraSocial = totalRemunerativo * 0.03;
+  // Obra Social
+  const pctObraSocial = convenio.obraSocial;
+  const obraSocial = totalRemunerativo * (pctObraSocial / 100);
   conceptos.push({
     codigo: '320',
-    descripcion: `Obra Social (${empleado.obraSocial})`,
+    descripcion: `Obra Social (${empleado.obraSocial || 'OSECAC'})`,
     tipo: 'deduccion',
-    porcentaje: 3,
+    porcentaje: pctObraSocial,
     importe: parseFloat(obraSocial.toFixed(2))
   });
 
-  // Ley 19.032 - INSSJP (3%)
-  const ley19032 = totalRemunerativo * 0.03;
+  // Ley 19.032 - INSSJP
+  const pctLey19032 = convenio.ley19032;
+  const ley19032 = totalRemunerativo * (pctLey19032 / 100);
   conceptos.push({
     codigo: '330',
     descripcion: 'Ley 19.032 - INSSJP',
     tipo: 'deduccion',
-    porcentaje: 3,
+    porcentaje: pctLey19032,
     importe: parseFloat(ley19032.toFixed(2))
   });
 
-  // Aporte Sindicato (2% - si está afiliado)
-  if (empleado.sindicato) {
-    const sindicatoImporte = totalRemunerativo * 0.02;
+  // Aporte Sindicato (si está afiliado y hay cuota sindical configurada)
+  if (empleado.sindicato && convenio.cuotaSindical > 0) {
+    const pctSindicato = convenio.cuotaSindical;
+    const sindicatoImporte = totalRemunerativo * (pctSindicato / 100);
     conceptos.push({
       codigo: '340',
-      descripcion: `Cuota Sindical (${empleado.sindicatoNombre})`,
+      descripcion: `Cuota Sindical (${empleado.sindicatoNombre || convenio.nombre})`,
       tipo: 'deduccion',
-      porcentaje: 2,
+      porcentaje: pctSindicato,
       importe: parseFloat(sindicatoImporte.toFixed(2))
     });
   }

@@ -6,6 +6,7 @@ import { Empleados } from './views/Empleados';
 import { Novedades } from './views/Novedades';
 import { Liquidaciones } from './views/Liquidacion';
 import { Portal } from './views/Portal';
+import { Configuracion } from './views/Configuracion';
 
 const ViewRenderer: React.FC = () => {
   const { currentView } = useApp();
@@ -21,6 +22,8 @@ const ViewRenderer: React.FC = () => {
       return <Liquidaciones />;
     case 'portal':
       return <Portal />;
+    case 'configuracion':
+      return <Configuracion />;
     default:
       return <Dashboard />;
   }

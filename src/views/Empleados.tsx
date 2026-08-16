@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export const Empleados: React.FC = () => {
-  const { empleados, agregarEmpleado, editarEmpleado, bajaEmpleado } = useApp();
+  const { empleados, convenios, agregarEmpleado, editarEmpleado, bajaEmpleado } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('Todos');
@@ -29,6 +29,7 @@ export const Empleados: React.FC = () => {
   const [obraSocial, setObraSocial] = useState('OSECAC');
   const [sindicato, setSindicato] = useState(false);
   const [sindicatoNombre, setSindicatoNombre] = useState('SEC (Comercio)');
+  const [convenioId, setConvenioId] = useState('cct-fuera');
   const [cbu, setCbu] = useState('');
 
   const departments = ['Todos', ...Array.from(new Set(empleados.map(e => e.departamento)))];
@@ -44,7 +45,8 @@ export const Empleados: React.FC = () => {
     setTipoRemuneracion('Mensual');
     setObraSocial('OSECAC');
     setSindicato(false);
-    setSindicatoNombre('SEC (Comercio)');
+    setSindicatoNombre('');
+    setConvenioId('cct-fuera');
     setCbu('');
     setModalOpen(true);
   };
@@ -61,6 +63,7 @@ export const Empleados: React.FC = () => {
     setObraSocial(emp.obraSocial);
     setSindicato(emp.sindicato);
     setSindicatoNombre(emp.sindicatoNombre);
+    setConvenioId(emp.convenioId || 'cct-fuera');
     setCbu(emp.cbu);
     setModalOpen(true);
   };
@@ -88,7 +91,8 @@ export const Empleados: React.FC = () => {
       tipoRemuneracion,
       obraSocial,
       sindicato,
-      sindicatoNombre: sindicato ? sindicatoNombre : '',
+      sindicatoNombre: sindicato ? (convenios.find(c => c.id === convenioId)?.nombre || sindicatoNombre) : '',
+      convenioId,
       cbu
     };
 
@@ -205,7 +209,12 @@ export const Empleados: React.FC = () => {
                     <td>
                       <div>{emp.obraSocial}</div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {emp.sindicato ? `Sí - ${emp.sindicatoNombre}` : 'No Sindicalizado'}
+                        {emp.sindicato 
+                          ? `${convenios.find(c => c.id === emp.convenioId)?.nombre || emp.sindicatoNombre || 'Sindicalizado'}` 
+                          : 'No Sindicalizado'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        CCT: {convenios.find(c => c.id === emp.convenioId)?.codigoCCT || '-'}
                       </div>
                     </td>
                     <td>
@@ -303,23 +312,52 @@ export const Empleados: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', margin: '1rem 0 1.5rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input 
-                    type="checkbox" 
-                    id="sindicato" 
-                    checked={sindicato} 
-                    onChange={e => setSindicato(e.target.checked)} 
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  <label htmlFor="sindicato" style={{ fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>Afiliado a Gremio/Sindicato (Deducción 2% adicional)</label>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Convenio Colectivo de Trabajo (CCT)</label>
+                  <select 
+                    className="form-input" 
+                    value={convenioId} 
+                    onChange={e => {
+                      const cid = e.target.value;
+                      setConvenioId(cid);
+                      if (cid === 'cct-fuera') {
+                        setSindicato(false);
+                        setSindicatoNombre('');
+                      } else {
+                        setSindicato(true);
+                        const conv = convenios.find(c => c.id === cid);
+                        if (conv) {
+                          setSindicatoNombre(conv.nombre);
+                        }
+                      }
+                    }}
+                  >
+                    {convenios.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} {c.codigoCCT !== '-' ? `(CCT ${c.codigoCCT})` : ''}</option>
+                    ))}
+                  </select>
                 </div>
-                {sindicato && (
-                  <div className="form-group" style={{ margin: '0', paddingTop: '0.5rem' }}>
-                    <label>Nombre del Sindicato / Convenio Colectivo</label>
-                    <input type="text" className="form-input" value={sindicatoNombre} onChange={e => setSindicatoNombre(e.target.value)} placeholder="Ej: SEC (Comercio), UOM" />
+                <div className="form-group" style={{ justifyContent: 'center', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.2rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id="sindicato" 
+                      checked={sindicato} 
+                      onChange={e => setSindicato(e.target.checked)} 
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      disabled={convenioId === 'cct-fuera'}
+                    />
+                    <label htmlFor="sindicato" style={{ fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>
+                      ¿Aporta Cuota Sindical?
+                    </label>
                   </div>
-                )}
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '1.5rem' }}>
+                    {convenioId === 'cct-fuera' 
+                      ? 'No aplica para fuera de convenio' 
+                      : `Aplica deducción de cuota sindical del ${convenios.find(c => c.id === convenioId)?.cuotaSindical}%`}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
