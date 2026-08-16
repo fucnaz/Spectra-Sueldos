@@ -2,6 +2,31 @@
  * SpectraSueldos - Core Application Logic (SPA Router, DB Service, Payroll Engine)
  */
 
+// --- MODO DEMO ---
+// El sistema corre en modo demo: sin conexión a Google Sheets.
+// Los datos de ejemplo se cargan automáticamente para que puedas explorar todas las funciones.
+const DEMO_MODE = true;
+
+// --- DATOS DE DEMO ---
+const DEMO_EMPLOYEES = [
+  { Legajo: 1001, Nombre: "González, María Laura",   CUIL: "27-30112233-4", Puesto: "Contadora",            Basico: 980000, FechaIngreso: "2020-03-15", Activo: true },
+  { Legajo: 1002, Nombre: "Rodríguez, Carlos Alberto", CUIL: "20-25446677-8", Puesto: "Analista de Sistemas",  Basico: 850000, FechaIngreso: "2019-07-01", Activo: true },
+  { Legajo: 1003, Nombre: "Martínez, Sofía Belén",   CUIL: "27-31567890-1", Puesto: "Diseñadora UX",         Basico: 790000, FechaIngreso: "2021-11-20", Activo: true },
+  { Legajo: 1004, Nombre: "López, Juan Ignacio",      CUIL: "20-28889900-5", Puesto: "Vendedor",              Basico: 620000, FechaIngreso: "2022-02-10", Activo: true },
+  { Legajo: 1005, Nombre: "Fernández, Valentina",     CUIL: "27-33445566-2", Puesto: "Recursos Humanos",      Basico: 710000, FechaIngreso: "2018-09-05", Activo: true }
+];
+
+const DEMO_CONFIG = {
+  empresa_nombre: "Demo Empresa S.A.",
+  empresa_cuit: "30-99887766-5",
+  empresa_direccion: "Av. de Mayo 1234, CABA",
+  lct_jubilacion_pct: 11.0,
+  lct_obrasocial_pct: 3.0,
+  lct_ley19032_pct: 3.0,
+  lct_presentismo_pct: 8.33,
+  lct_antiguedad_pct: 1.0
+};
+
 // --- CONFIGURACIÓN POR DEFECTO ---
 const DEFAULT_CONFIG = {
   empresa_nombre: "Mi Empresa S.A.",
@@ -14,15 +39,12 @@ const DEFAULT_CONFIG = {
   lct_antiguedad_pct: 1.0
 };
 
-// --- URL DE GOOGLE SHEETS (fija, no modificable por el usuario) 
-// const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzybj6i3a3uwz-MxHZjEz-eYdSmv2ru3nLLq--xmrrNlo1EbNb4z-dZYOSbwsdOojL04A/exec";
-
 // --- ESTADO GLOBAL ---
 let state = {
   employees: [],
   liquidations: [],
   config: { ...DEFAULT_CONFIG },
-  sheetsUrl: SHEETS_URL,
+  sheetsUrl: null,   // Sin conexión a Google Sheets (Modo Demo)
   isOnline: false,
   activeSection: "tablero"
 };
@@ -48,6 +70,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Mostrar fecha actual en el tablero
   const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById("current-date-display").innerText = today.toLocaleDateString('es-ES', dateOptions);
+
+  initMobileNav();
 });
 
 // --- SISTEMA DE NAVEGACIÓN (SPA ROUTER) ---
@@ -72,7 +96,7 @@ function navigate(targetSection) {
     target.classList.remove("d-none");
   }
 
-  // Actualizar estado de botones de navegación
+  // Actualizar estado de botones de navegación (sidebar desktop)
   const navButtons = document.querySelectorAll(".nav-btn");
   navButtons.forEach(btn => {
     if (btn.getAttribute("data-target") === targetSection) {
@@ -81,6 +105,19 @@ function navigate(targetSection) {
       btn.classList.remove("active");
     }
   });
+
+  // Actualizar estado de botones de la barra inferior móvil
+  const mobNavBtns = document.querySelectorAll(".mob-nav-btn");
+  mobNavBtns.forEach(btn => {
+    if (btn.getAttribute("data-target") === targetSection) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  // Cerrar sidebar móvil al navegar
+  closeMobileSidebar();
 
   state.activeSection = targetSection;
 
@@ -106,45 +143,74 @@ function initTheme() {
   const sunIcon = toggleBtn.querySelector(".sun-icon");
   const moonIcon = toggleBtn.querySelector(".moon-icon");
 
-  // Leer tema guardado
-  const savedTheme = localStorage.getItem("spectra-theme") || "dark";
-  if (savedTheme === "light") {
-    document.body.classList.add("light-theme");
-    document.body.classList.remove("dark-theme");
-    sunIcon.classList.add("d-none");
-    moonIcon.classList.remove("d-none");
-  }
+  // Botón móvil
+  const mobileToggleBtn = document.getElementById("mobile-theme-toggle");
+  const sunIconM = mobileToggleBtn ? mobileToggleBtn.querySelector(".sun-icon-m") : null;
+  const moonIconM = mobileToggleBtn ? mobileToggleBtn.querySelector(".moon-icon-m") : null;
 
-  toggleBtn.addEventListener("click", () => {
-    const isLight = document.body.classList.toggle("light-theme");
-    document.body.classList.toggle("dark-theme", !isLight);
-
+  // Helper para sincronizar ambos botones de tema
+  function applyTheme(isLight) {
     if (isLight) {
-      localStorage.setItem("spectra-theme", "light");
+      document.body.classList.add("light-theme");
+      document.body.classList.remove("dark-theme");
       sunIcon.classList.add("d-none");
       moonIcon.classList.remove("d-none");
-      showToast("Tema claro activado", "info");
+      if (sunIconM) sunIconM.classList.add("d-none");
+      if (moonIconM) moonIconM.classList.remove("d-none");
     } else {
-      localStorage.setItem("spectra-theme", "dark");
+      document.body.classList.remove("light-theme");
+      document.body.classList.add("dark-theme");
       sunIcon.classList.remove("d-none");
       moonIcon.classList.add("d-none");
-      showToast("Tema oscuro activado", "info");
+      if (sunIconM) sunIconM.classList.remove("d-none");
+      if (moonIconM) moonIconM.classList.add("d-none");
     }
-  });
+  }
+
+  // Leer tema guardado
+  const savedTheme = localStorage.getItem("spectra-theme") || "dark";
+  applyTheme(savedTheme === "light");
+
+  function toggleTheme() {
+    const isLight = document.body.classList.toggle("light-theme");
+    document.body.classList.toggle("dark-theme", !isLight);
+    applyTheme(isLight);
+    localStorage.setItem("spectra-theme", isLight ? "light" : "dark");
+    showToast(isLight ? "Tema claro activado" : "Tema oscuro activado", "info");
+  }
+
+  toggleBtn.addEventListener("click", toggleTheme);
+  if (mobileToggleBtn) mobileToggleBtn.addEventListener("click", toggleTheme);
 }
 
 // --- CAPA DE DATOS (LOCALSTORAGE & GOOGLE SHEETS API) ---
 
 function loadLocalSettings() {
-  // La URL de Google Sheets está hardcodeada en SHEETS_URL y no se lee ni escribe en localStorage.
-  // Cargar datos locales como fallback inicial
   const localEmployees = localStorage.getItem("spectra_employees");
   const localLiquidations = localStorage.getItem("spectra_liquidations");
   const localConfig = localStorage.getItem("spectra_config");
 
-  if (localEmployees) state.employees = JSON.parse(localEmployees);
-  if (localLiquidations) state.liquidations = JSON.parse(localLiquidations);
-  if (localConfig) state.config = { ...DEFAULT_CONFIG, ...JSON.parse(localConfig) };
+  if (localEmployees) {
+    state.employees = JSON.parse(localEmployees);
+  } else if (DEMO_MODE) {
+    // Cargar empleados de ejemplo si no hay datos locales
+    state.employees = DEMO_EMPLOYEES;
+    localStorage.setItem("spectra_employees", JSON.stringify(state.employees));
+  }
+
+  if (localLiquidations) {
+    state.liquidations = JSON.parse(localLiquidations);
+  } else {
+    state.liquidations = [];
+  }
+
+  if (localConfig) {
+    state.config = { ...DEFAULT_CONFIG, ...JSON.parse(localConfig) };
+  } else if (DEMO_MODE) {
+    // Cargar configuración de demo si no hay datos locales
+    state.config = { ...DEFAULT_CONFIG, ...DEMO_CONFIG };
+    localStorage.setItem("spectra_config", JSON.stringify(state.config));
+  }
 }
 
 // Refresca la información leyendo de Sheets (si está configurado) o de LocalStorage
@@ -191,13 +257,18 @@ function setOnlineStatus(online, customText = "") {
     dot.className = "db-indicator online";
     title.innerText = "Google Sheets Conectado";
     desc.innerText = "Base de datos en la nube activa";
-    if (syncBtn) syncBtn.classList.add("d-none"); // Ocultar panel de sync si ya está enlazado correctamente
+    if (syncBtn) syncBtn.classList.add("d-none");
+  } else if (DEMO_MODE) {
+    // En modo demo siempre mostramos el indicador azul de demo
+    dot.className = "db-indicator demo";
+    title.innerText = "Modo Demo";
+    desc.innerText = "Datos de ejemplo activos";
+    if (syncBtn) syncBtn.classList.add("d-none");
   } else {
     dot.className = "db-indicator offline";
     title.innerText = customText || "Base de datos local";
     desc.innerText = "LocalStorage activo (Offline)";
 
-    // Si hay URL pero no está conectada, mostramos panel de sync por si acaso
     if (state.sheetsUrl && syncBtn) {
       syncBtn.classList.remove("d-none");
     }
@@ -733,11 +804,11 @@ function renderRecentLiquidations() {
   sorted.forEach(liq => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><strong>${liq.Nombre}</strong><br><span class="text-muted text-sm">Legajo ${liq.Legajo}</span></td>
-      <td>${formatPeriod(liq.Periodo)}</td>
-      <td class="text-success">${formatCurrency(liq.TotalBruto)}</td>
-      <td class="text-danger">${formatCurrency(liq.TotalDeducciones)}</td>
-      <td><strong>${formatCurrency(liq.Neto)}</strong></td>
+      <td data-label="Empleado"><strong>${liq.Nombre}</strong><br><span class="text-muted text-sm">Legajo ${liq.Legajo}</span></td>
+      <td data-label="Período">${formatPeriod(liq.Periodo)}</td>
+      <td data-label="Bruto" class="text-success">${formatCurrency(liq.TotalBruto)}</td>
+      <td data-label="Descuentos" class="text-danger">${formatCurrency(liq.TotalDeducciones)}</td>
+      <td data-label="Neto"><strong>${formatCurrency(liq.Neto)}</strong></td>
       <td>
         <button class="action-btn-sm print" onclick="reprintReceipt('${liq.ID}')" title="Reimprimir">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -779,14 +850,14 @@ function renderEmployeesTable() {
   filtered.forEach(emp => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><strong>${emp.Legajo}</strong></td>
-      <td><strong>${emp.Nombre}</strong></td>
-      <td>${emp.CUIL}</td>
-      <td>${formatDate(emp.FechaIngreso)}</td>
-      <td>${emp.Puesto}</td>
-      <td>${formatCurrency(emp.Basico)}</td>
-      <td>${emp.ObraSocial}</td>
-      <td>
+      <td data-label="Legajo"><strong>${emp.Legajo}</strong></td>
+      <td data-label="Nombre"><strong>${emp.Nombre}</strong></td>
+      <td data-label="CUIL">${emp.CUIL}</td>
+      <td data-label="Ingreso">${formatDate(emp.FechaIngreso)}</td>
+      <td data-label="Puesto">${emp.Puesto}</td>
+      <td data-label="Básico">${formatCurrency(emp.Basico)}</td>
+      <td data-label="Obra Social">${emp.ObraSocial}</td>
+      <td data-label="Estado">
         <span class="badge ${emp.Activo ? 'badge-success' : 'badge-danger'}">
           ${emp.Activo ? 'Activo' : 'Inactivo'}
         </span>
@@ -1131,14 +1202,14 @@ function renderHistoryTable() {
   sorted.forEach(liq => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><span class="text-muted text-sm">${liq.ID}</span></td>
-      <td><strong>${liq.Legajo}</strong></td>
-      <td><strong>${liq.Nombre}</strong></td>
-      <td>${formatPeriod(liq.Periodo)}</td>
-      <td class="text-success">${formatCurrency(liq.TotalBruto)}</td>
-      <td class="text-danger">${formatCurrency(liq.TotalDeducciones)}</td>
-      <td><strong>${formatCurrency(liq.Neto)}</strong></td>
-      <td>${formatDate(liq.FechaLiquidacion)}</td>
+      <td data-label="ID"><span class="text-muted text-sm">${liq.ID}</span></td>
+      <td data-label="Legajo"><strong>${liq.Legajo}</strong></td>
+      <td data-label="Nombre"><strong>${liq.Nombre}</strong></td>
+      <td data-label="Período">${formatPeriod(liq.Periodo)}</td>
+      <td data-label="Bruto" class="text-success">${formatCurrency(liq.TotalBruto)}</td>
+      <td data-label="Descuentos" class="text-danger">${formatCurrency(liq.TotalDeducciones)}</td>
+      <td data-label="Neto"><strong>${formatCurrency(liq.Neto)}</strong></td>
+      <td data-label="Fecha">${formatDate(liq.FechaLiquidacion)}</td>
       <td>
         <button class="action-btn-sm print" onclick="reprintReceipt('${liq.ID}')" title="Imprimir">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -1151,8 +1222,9 @@ function renderHistoryTable() {
 
 // 9. Configuración y carga de inputs
 function populateConfigFields() {
-  // Google Sheets
-  document.getElementById("cfg-sheets-url").value = state.sheetsUrl;
+  // Google Sheets (campo puede estar comentado en modo demo)
+  const sheetsUrlInput = document.getElementById("cfg-sheets-url");
+  if (sheetsUrlInput) sheetsUrlInput.value = state.sheetsUrl || "";
 
   // Datos empresa
   document.getElementById("cfg-emp-name").value = state.config.empresa_nombre || "";
@@ -1288,48 +1360,47 @@ function initEventListeners() {
     renderHistoryTable();
   });
 
-  // --- SECCIÓN CONFIGURACIÓN ---
+  // --- SECCIÓN CONFIGURACIÓN (Sheets - solo si los elementos existen) ---
 
-  // Probar Conexión
-  document.getElementById("btn-test-sheets-conn").addEventListener("click", async () => {
-    const url = document.getElementById("cfg-sheets-url").value;
-    if (!url) {
-      showToast("Ingresa una URL antes de probar", "error");
-      return;
-    }
-
-    showToast("Probando conexión...", "info");
-
-    try {
-      const res = await fetch(url, { method: "GET" });
-      if (!res.ok) throw new Error();
-      const testData = await res.json();
-
-      if (testData.status === "success") {
-        showToast("Conexión exitosa con Google Sheets", "success");
-      } else {
-        showToast("Respuesta incorrecta del script", "error");
+  const btnTestConn = document.getElementById("btn-test-sheets-conn");
+  if (btnTestConn) {
+    btnTestConn.addEventListener("click", async () => {
+      const url = document.getElementById("cfg-sheets-url").value;
+      if (!url) { showToast("Ingresa una URL antes de probar", "error"); return; }
+      showToast("Probando conexión...", "info");
+      try {
+        const res = await fetch(url, { method: "GET" });
+        if (!res.ok) throw new Error();
+        const testData = await res.json();
+        if (testData.status === "success") {
+          showToast("Conexión exitosa con Google Sheets", "success");
+        } else {
+          showToast("Respuesta incorrecta del script", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Error de conexión. Revisa la URL y los permisos.", "error");
       }
-    } catch (err) {
-      console.error(err);
-      showToast("Error de conexión. Revisa la URL y los permisos.", "error");
-    }
-  });
+    });
+  }
 
-  // Guardar URL de Sheets
-  document.getElementById("btn-save-sheets-config").addEventListener("click", async () => {
-    const url = document.getElementById("cfg-sheets-url").value;
-    state.sheetsUrl = url;
-    localStorage.setItem("spectra_sheets_url", url);
+  const btnSaveSheets = document.getElementById("btn-save-sheets-config");
+  if (btnSaveSheets) {
+    btnSaveSheets.addEventListener("click", async () => {
+      const url = document.getElementById("cfg-sheets-url").value;
+      state.sheetsUrl = url;
+      localStorage.setItem("spectra_sheets_url", url);
+      showToast("Buscando datos en Google Sheets...", "info");
+      await refreshData();
+      setOnlineStatus(state.isOnline);
+      populateConfigFields();
+    });
+  }
 
-    showToast("Buscando datos en Google Sheets...", "info");
-    await refreshData();
-    setOnlineStatus(state.isOnline);
-    populateConfigFields();
-  });
-
-  // Sincronizar local a Sheets
-  document.getElementById("btn-sync-local-to-sheets").addEventListener("click", syncLocalDataToSheets);
+  const btnSyncLocal = document.getElementById("btn-sync-local-to-sheets");
+  if (btnSyncLocal) {
+    btnSyncLocal.addEventListener("click", syncLocalDataToSheets);
+  }
 
   // Guardar Datos Empleador
   document.getElementById("form-config-employer").addEventListener("submit", async (e) => {
@@ -1400,3 +1471,47 @@ window.openEditEmployeeModal = openEditEmployeeModal;
 window.deactivateEmployee = deactivateEmployee;
 window.reactivateEmployee = reactivateEmployee;
 window.reprintReceipt = reprintReceipt;
+
+// --- NAVEGACIÓN MÓVIL ---
+
+function openMobileSidebar() {
+  document.querySelector(".sidebar").classList.add("open");
+  const overlay = document.getElementById("sidebar-overlay");
+  overlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeMobileSidebar() {
+  document.querySelector(".sidebar").classList.remove("open");
+  const overlay = document.getElementById("sidebar-overlay");
+  overlay.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function initMobileNav() {
+  // Hamburguesa
+  const menuBtn = document.getElementById("mobile-menu-btn");
+  if (menuBtn) {
+    menuBtn.addEventListener("click", openMobileSidebar);
+  }
+
+  // Overlay cierra el sidebar
+  const overlay = document.getElementById("sidebar-overlay");
+  if (overlay) {
+    overlay.addEventListener("click", closeMobileSidebar);
+  }
+
+  // Barra inferior móvil
+  const mobNavBtns = document.querySelectorAll(".mob-nav-btn");
+  mobNavBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-target");
+      if (target) navigate(target);
+    });
+  });
+
+  // Tocar fuera del sidebar (swipe-friendly: cerrar con Escape)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMobileSidebar();
+  });
+}
