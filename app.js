@@ -70,8 +70,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Mostrar fecha actual en el tablero
   const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById("current-date-display").innerText = today.toLocaleDateString('es-ES', dateOptions);
-
-  initMobileNav();
 });
 
 // --- SISTEMA DE NAVEGACIÓN (SPA ROUTER) ---
@@ -105,19 +103,6 @@ function navigate(targetSection) {
       btn.classList.remove("active");
     }
   });
-
-  // Actualizar estado de botones de la barra inferior móvil
-  const mobNavBtns = document.querySelectorAll(".mob-nav-btn");
-  mobNavBtns.forEach(btn => {
-    if (btn.getAttribute("data-target") === targetSection) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
-
-  // Cerrar sidebar móvil al navegar
-  closeMobileSidebar();
 
   state.activeSection = targetSection;
 
@@ -1472,46 +1457,3 @@ window.deactivateEmployee = deactivateEmployee;
 window.reactivateEmployee = reactivateEmployee;
 window.reprintReceipt = reprintReceipt;
 
-// --- NAVEGACIÓN MÓVIL ---
-
-function openMobileSidebar() {
-  document.querySelector(".sidebar").classList.add("open");
-  const overlay = document.getElementById("sidebar-overlay");
-  overlay.classList.add("active");
-  document.body.style.overflow = "hidden";
-}
-
-function closeMobileSidebar() {
-  document.querySelector(".sidebar").classList.remove("open");
-  const overlay = document.getElementById("sidebar-overlay");
-  overlay.classList.remove("active");
-  document.body.style.overflow = "";
-}
-
-function initMobileNav() {
-  // Hamburguesa
-  const menuBtn = document.getElementById("mobile-menu-btn");
-  if (menuBtn) {
-    menuBtn.addEventListener("click", openMobileSidebar);
-  }
-
-  // Overlay cierra el sidebar
-  const overlay = document.getElementById("sidebar-overlay");
-  if (overlay) {
-    overlay.addEventListener("click", closeMobileSidebar);
-  }
-
-  // Barra inferior móvil
-  const mobNavBtns = document.querySelectorAll(".mob-nav-btn");
-  mobNavBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const target = btn.getAttribute("data-target");
-      if (target) navigate(target);
-    });
-  });
-
-  // Tocar fuera del sidebar (swipe-friendly: cerrar con Escape)
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeMobileSidebar();
-  });
-}
