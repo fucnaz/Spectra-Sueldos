@@ -70,6 +70,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Mostrar fecha actual en el tablero
   const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById("current-date-display").innerText = today.toLocaleDateString('es-ES', dateOptions);
+
+  initMobileNav();
 });
 
 // --- SISTEMA DE NAVEGACIÓN (SPA ROUTER) ---
@@ -104,6 +106,9 @@ function navigate(targetSection) {
     }
   });
 
+  // Cerrar sidebar móvil si se navega
+  closeMobileSidebar();
+
   state.activeSection = targetSection;
 
   // Acciones específicas al entrar a una sección
@@ -121,6 +126,7 @@ function navigate(targetSection) {
     populateConfigFields();
   }
 }
+
 
 // --- TEMA CLARO / OSCURO ---
 function initTheme() {
@@ -152,7 +158,6 @@ function initTheme() {
     }
   }
 
-  // Leer tema guardado
   const savedTheme = localStorage.getItem("spectra-theme") || "dark";
   applyTheme(savedTheme === "light");
 
@@ -794,7 +799,7 @@ function renderRecentLiquidations() {
       <td data-label="Bruto" class="text-success">${formatCurrency(liq.TotalBruto)}</td>
       <td data-label="Descuentos" class="text-danger">${formatCurrency(liq.TotalDeducciones)}</td>
       <td data-label="Neto"><strong>${formatCurrency(liq.Neto)}</strong></td>
-      <td>
+      <td data-label="Acciones">
         <button class="action-btn-sm print" onclick="reprintReceipt('${liq.ID}')" title="Reimprimir">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
         </button>
@@ -847,7 +852,7 @@ function renderEmployeesTable() {
           ${emp.Activo ? 'Activo' : 'Inactivo'}
         </span>
       </td>
-      <td>
+      <td data-label="Acciones">
         <button class="action-btn-sm edit mr-2" onclick="openEditEmployeeModal('${emp.Legajo}')" title="Editar">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
@@ -998,6 +1003,16 @@ function handleCalculatePayroll() {
 
   // Mostrar tabla y botón de confirmación
   document.getElementById("payroll-details-table-wrapper").classList.remove("d-none");
+
+  // Mostrar botón de volver solo si estamos en móvil
+  const closePreviewBtn = document.getElementById("btn-close-preview-m");
+  if (closePreviewBtn) {
+    if (window.innerWidth <= 768) {
+      closePreviewBtn.style.display = "block";
+    } else {
+      closePreviewBtn.style.display = "none";
+    }
+  }
 
   showToast("Cálculo realizado con éxito. Listo para confirmar.", "success");
 }
@@ -1456,4 +1471,49 @@ window.openEditEmployeeModal = openEditEmployeeModal;
 window.deactivateEmployee = deactivateEmployee;
 window.reactivateEmployee = reactivateEmployee;
 window.reprintReceipt = reprintReceipt;
+
+// --- NAVEGACIÓN MÓVIL ---
+
+function openMobileSidebar() {
+  document.querySelector(".sidebar").classList.add("open");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (overlay) overlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.querySelector(".sidebar");
+  if (sidebar) sidebar.classList.remove("open");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (overlay) overlay.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function initMobileNav() {
+  // Botón Hamburguesa
+  const menuBtn = document.getElementById("mobile-menu-btn");
+  if (menuBtn) {
+    menuBtn.addEventListener("click", openMobileSidebar);
+  }
+
+  // Cerrar sidebar al hacer clic en overlay
+  const overlay = document.getElementById("sidebar-overlay");
+  if (overlay) {
+    overlay.addEventListener("click", closeMobileSidebar);
+  }
+
+  // Cerrar vista previa flotante de cálculo en móviles
+  const closePreviewBtn = document.getElementById("btn-close-preview-m");
+  if (closePreviewBtn) {
+    closePreviewBtn.addEventListener("click", () => {
+      document.getElementById("payroll-details-table-wrapper").classList.add("d-none");
+    });
+  }
+
+  // Escape cierra menú
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMobileSidebar();
+  });
+}
+
 
