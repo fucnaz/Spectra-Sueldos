@@ -260,6 +260,18 @@ body {
     height: auto;
     min-height: calc(100vh - 120px); /* header + bottom nav */
     padding-bottom: 90px; /* espacio para bottom nav */
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Forzar ocultamiento absoluto en móvil para evitar superposición */
+  .app-section.d-none {
+    display: none !important;
+  }
+
+  .app-section {
+    width: 100%;
   }
 
   /* Demo banner compacto en tablet */
